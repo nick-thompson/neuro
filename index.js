@@ -10,8 +10,4 @@ bass.schedule(BPM, 1, ['f1', '__', 'f1', 'f3',
                        'f1', 'f1', 'f3', 'f1',
                        'f1', '__', '__', '__',
                        '__', '__', '__', 'a2']);
-bass.start();
-
-setTimeout(function() {
-  bass.stop();
-}, 2000);
+bass.play();
