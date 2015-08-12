@@ -1,0 +1,32 @@
+{
+  "name": "neuro",
+  "version": "0.1.0",
+  "description": "A web audio experiment/tutorial in bass synthesis.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify index.js -o build/neuro.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nick-thompson/neuro"
+  },
+  "keywords": [
+    "audio",
+    "web",
+    "audio",
+    "synthesis",
+    "sound",
+    "bass"
+  ],
+  "author": "Nick Thompson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nick-thompson/neuro/issues"
+  },
+  "homepage": "https://github.com/nick-thompson/neuro",
+  "dependencies": {
+    "browserify": "^11.0.1",
+    "teoria": "^1.12.0"
+  }
+}
