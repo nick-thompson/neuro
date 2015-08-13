@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify index.js -o build/neuro.js"
+    "build": "browserify index.js -o build/neuro.js",
+    "watch": "watchify index.js -o build/neuro.js"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
   "homepage": "https://github.com/nick-thompson/neuro",
   "dependencies": {
     "browserify": "^11.0.1",
-    "teoria": "^1.12.0"
+    "teoria": "^1.12.0",
+    "watchify": "^3.3.1"
   }
 }
