@@ -1,5 +1,6 @@
 var Bass = require('./lib/generators/Bass');
 var RecorderWrapper = require('./lib/util/RecorderWrapper');
+var S2Sampler = require('./lib/generators/S2Sampler');
 
 var ctx = new AudioContext();
 var bass = new Bass(ctx);
@@ -19,16 +20,8 @@ recorder.start();
 bass.play(BPM, 1, notes, function(e) {
   console.log('Recording finished... collecting buffer.');
   recorder.stop(function(buffer) {
-    var sourceOne = ctx.createBufferSource();
-    var sourceTwo = ctx.createBufferSource();
-
-    sourceOne.buffer = buffer;
-    sourceTwo.buffer = buffer;
-    sourceTwo.detune.value = 3;
-
-    sourceOne.connect(ctx.destination);
-    sourceTwo.connect(ctx.destination);
-    sourceOne.start(0);
-    sourceTwo.start(0);
+    var sampler = new S2Sampler(ctx, buffer);
+    sampler.connect(ctx.destination);
+    sampler.start(0);
   });
 });
