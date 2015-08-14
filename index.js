@@ -1,11 +1,9 @@
 var Bass = require('./lib/generators/Bass');
+var RecorderWrapper = require('./lib/util/RecorderWrapper');
 
 var ctx = new AudioContext();
 var bass = new Bass(ctx);
-var rec = new Recorder(bass, {
-  workerPath: 'recorder/recorderWorker.js',
-  numChannels: 1
-});
+var recorder = new RecorderWrapper(bass);
 
 var BPM = 130;
 var notes = [
@@ -16,19 +14,21 @@ var notes = [
 ];
 
 bass.connect(ctx.destination);
-rec.record();
+recorder.start();
 
 bass.play(BPM, 1, notes, function(e) {
   console.log('Recording finished... collecting buffer.');
-  rec.stop();
-  rec.getBuffer(function(buffers) {
-    var source = ctx.createBufferSource();
-    var buffer = ctx.createBuffer(1, buffers[0].length, ctx.sampleRate);
+  recorder.stop(function(buffer) {
+    var sourceOne = ctx.createBufferSource();
+    var sourceTwo = ctx.createBufferSource();
 
-    buffer.getChannelData(0).set(buffers[0]);
-    source.buffer = buffer;
+    sourceOne.buffer = buffer;
+    sourceTwo.buffer = buffer;
+    sourceTwo.detune.value = 3;
 
-    source.connect(ctx.destination);
-    source.start(0);
+    sourceOne.connect(ctx.destination);
+    sourceTwo.connect(ctx.destination);
+    sourceOne.start(0);
+    sourceTwo.start(0);
   });
 });
