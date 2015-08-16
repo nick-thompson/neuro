@@ -19,6 +19,8 @@ bass.connect(recorder);
 bass.connect(ctx.destination);
 recorder.start();
 
+// Bass through distortion
+
 // Step 1.
 bass.play(BPM, 1, notes, function(e) {
   console.log('Recording finished... collecting buffer.');
@@ -29,6 +31,8 @@ bass.play(BPM, 1, notes, function(e) {
     var s2 = new Sampler(ctx, buffer);
     var gr = new Group(ctx, [s1, s2]);
     var recorder = new RecorderWrapper(ctx);
+
+    // Gr through bandpass then distortion
 
     s2.node.detune.value = 3;
     gr.connect(recorder);
@@ -41,8 +45,18 @@ bass.play(BPM, 1, notes, function(e) {
 
         // Step 3.
         var s1 = new Sampler(ctx, buffer);
-        s1.connect(ctx.destination);
-        s1.play();
+        var s2 = new Sampler(ctx, buffer);
+        var gr = new Group(ctx, [s1, s2]);
+
+        // Except s1 goes through phaser, s2 goes through distortion
+        // Then group goes through LP/BP filter with fun automation
+
+        s2.node.detune.value = 3;
+        gr.connect(ctx.destination);
+
+        gr.play(function(e) {
+          console.log('Done.');
+        });
       });
     });
   });
