@@ -65,9 +65,13 @@ function stepTwo(buffer, callback) {
 function stepThree(buffer, callback) {
   var s1 = new Sampler(ctx, buffer);
   var s2 = new Sampler(ctx, buffer, {detune: 5});
+  var gain = ctx.createGain();
 
-  s1.connect(ctx.destination);
-  s2.connect(ctx.destination);
+  gain.gain.value = 0.5;
+
+  s1.connect(gain);
+  s2.connect(gain);
+  gain.connect(ctx.destination);
 
   play(s1, s2, function(e) {
     callback();
