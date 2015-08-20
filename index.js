@@ -1,4 +1,5 @@
 var Bass = require('./lib/generators/Bass');
+var Chorus = require('./lib/effects/Chorus');
 var Filter = require('./lib/effects/Filter');
 var RecorderWrapper = require('./lib/util/RecorderWrapper');
 var Sampler = require('./lib/generators/Sampler');
@@ -84,6 +85,8 @@ function stepTwo(buffer, callback) {
   var notch = new Filter.Notch(ctx, {Q: 0.5});
   var ws1 = new WaveShaper(ctx, {drive: 1.8});
   var ws2 = new WaveShaper(ctx, {drive: 1.2});
+  var cr1 = new Chorus(ctx);
+  var cr2 = new Chorus(ctx);
   var m1 = ctx.createGain();
   var m2 = ctx.createGain();
 
@@ -94,12 +97,14 @@ function stepTwo(buffer, callback) {
   // Connect the left side of the parallel chain
   m1.connect(bp.input);
   bp.connect(notch);
-  notch.connect(ws1);
+  notch.connect(cr1);
+  cr1.connect(ws1);
   ws1.connect(m2);
 
   // Connect the right side of the parallel chain
   m1.connect(ws2.input);
-  ws2.connect(m2);
+  ws2.connect(cr2);
+  cr2.connect(m2);
 
   // Connect the merged result
   m2.connect(recorder.input);

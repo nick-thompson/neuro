@@ -1,5 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var Bass = require('./lib/generators/Bass');
+var Chorus = require('./lib/effects/Chorus');
 var Filter = require('./lib/effects/Filter');
 var RecorderWrapper = require('./lib/util/RecorderWrapper');
 var Sampler = require('./lib/generators/Sampler');
@@ -85,6 +86,8 @@ function stepTwo(buffer, callback) {
   var notch = new Filter.Notch(ctx, {Q: 0.5});
   var ws1 = new WaveShaper(ctx, {drive: 1.8});
   var ws2 = new WaveShaper(ctx, {drive: 1.2});
+  var cr1 = new Chorus(ctx);
+  var cr2 = new Chorus(ctx);
   var m1 = ctx.createGain();
   var m2 = ctx.createGain();
 
@@ -95,12 +98,14 @@ function stepTwo(buffer, callback) {
   // Connect the left side of the parallel chain
   m1.connect(bp.input);
   bp.connect(notch);
-  notch.connect(ws1);
+  notch.connect(cr1);
+  cr1.connect(ws1);
   ws1.connect(m2);
 
   // Connect the right side of the parallel chain
   m1.connect(ws2.input);
-  ws2.connect(m2);
+  ws2.connect(cr2);
+  cr2.connect(m2);
 
   // Connect the merged result
   m2.connect(recorder.input);
@@ -156,7 +161,7 @@ document.addEventListener('keyup', function(e) {
 // Kick it off.
 waterfall();
 
-},{"./lib/effects/Filter":3,"./lib/effects/WaveShaper":4,"./lib/generators/Bass":5,"./lib/generators/Sampler":6,"./lib/util/RecorderWrapper":7}],2:[function(require,module,exports){
+},{"./lib/effects/Chorus":3,"./lib/effects/Filter":4,"./lib/effects/WaveShaper":5,"./lib/generators/Bass":6,"./lib/generators/Sampler":7,"./lib/util/RecorderWrapper":9}],2:[function(require,module,exports){
 /**
  * An abstract class for custom audio nodes.
  *
@@ -198,6 +203,73 @@ AbstractNode.prototype.disconnect = function disconnect(destination) {
 module.exports = AbstractNode;
 
 },{}],3:[function(require,module,exports){
+var AbstractNode = require('../AbstractNode');
+var LFO = require('../util/LFO');
+
+/**
+ * A simple chorus effect implementation.
+ *
+ * @param {AudioContext} ctx
+ */
+
+function Chorus(ctx) {
+  AbstractNode.call(this, ctx);
+  this.attenuator = ctx.createGain();
+  this.split = ctx.createChannelSplitter(2);
+  this.leftDelay = ctx.createDelay();
+  this.rightDelay = ctx.createDelay();
+  this.leftGain = ctx.createGain();
+  this.rightGain = ctx.createGain();
+  this.merge = ctx.createChannelMerger(2);
+
+  // Routing graph
+  this.input.connect(this.attenuator);
+  this.attenuator.connect(this.output);
+  this.attenuator.connect(this.split);
+  this.split.connect(this.leftDelay, 0);
+  this.split.connect(this.rightDelay, 0);
+  this.leftDelay.connect(this.leftGain);
+  this.rightDelay.connect(this.rightGain);
+  this.leftGain.connect(this.merge, 0, 0);
+  this.rightGain.connect(this.merge, 0, 1);
+  this.merge.connect(this.output);
+
+  // Parameters
+  this.depth = 0.335 / 1000;
+  this.delay = 0.05 / 1000;
+  this.attenuator.gain.value = 0.6934;
+
+  // Modulation.
+  // Traditionally, a chorus effect will modulate the delayTime
+  // on both the left and right channel. For this implementation, I'll get
+  // the desired effect only modulating one of them.
+  this.lfo = new LFO(ctx, {
+    freq: 3.828,
+    scale: this.depth / 2
+  });
+
+  this.lfo.connect(this.rightDelay.delayTime);
+}
+
+Chorus.prototype = Object.create(AbstractNode.prototype, {
+
+  delay: {
+    enumerable: true,
+    get: function() {
+      return this._delay;
+    },
+    set: function(value) {
+      this._delay = value;
+      this.leftDelay.delayTime.value = value + this.depth / 2;
+      this.rightDelay.delayTime.value = value + this.depth / 2;
+    }
+  }
+
+});
+
+module.exports = Chorus;
+
+},{"../AbstractNode":2,"../util/LFO":8}],4:[function(require,module,exports){
 var AbstractNode = require('../AbstractNode');
 
 /**
@@ -401,7 +473,7 @@ Filter.Allpass = function (context, opts) {
 
 module.exports = Filter;
 
-},{"../AbstractNode":2}],4:[function(require,module,exports){
+},{"../AbstractNode":2}],5:[function(require,module,exports){
 var AbstractNode = require('../AbstractNode');
 
 /**
@@ -457,7 +529,7 @@ WaveShaper.prototype = Object.create(AbstractNode.prototype, {
 
 module.exports = WaveShaper;
 
-},{"../AbstractNode":2}],5:[function(require,module,exports){
+},{"../AbstractNode":2}],6:[function(require,module,exports){
 var AbstractNode = require('../AbstractNode');
 
 var teoria = require('teoria');
@@ -553,7 +625,7 @@ Bass.prototype = Object.create(AbstractNode.prototype, {
 
 module.exports = Bass;
 
-},{"../AbstractNode":2,"teoria":8}],6:[function(require,module,exports){
+},{"../AbstractNode":2,"teoria":10}],7:[function(require,module,exports){
 var AbstractNode = require('../AbstractNode');
 
 /**
@@ -600,7 +672,57 @@ Sampler.prototype = Object.create(AbstractNode.prototype, {
 
 module.exports = Sampler;
 
-},{"../AbstractNode":2}],7:[function(require,module,exports){
+},{"../AbstractNode":2}],8:[function(require,module,exports){
+var AbstractNode = require('../AbstractNode');
+
+/**
+ * An LFO utility for scaling oscillator output appropriately.
+ *
+ * The output of the LFO will be on the range [-scale, scale] where scale
+ * is the value provided in the options object.
+ *
+ * Assuming a sine-based LFO is connected to an AudioParam, the value of
+ * the AudioParam, A, at time t will be
+ *   value = A.value + sin(t) * scale
+ *
+ * That is to say that the baseline value will be provided by the `.value`
+ * property supplied on the target AudioParam. Thus, for example, suppose you
+ * want your AudioParam's value to oscillate on the range [0, 100]. In that
+ * case, you should set `.value` = 50, and supply a `scale` parameter to the
+ * LFO of 50. The computed result then traverses the range [50 - 50, 50 + 50].
+ *
+ * Another option involves summing two LFOs of the same frequency and oscillator
+ * type. Pretty simply, the range [-scale, scale] summed once with itself
+ * becomes [0, 2 * scale].
+ *
+ * @param {AudioContext} context
+ * @param {Object} opts
+ * @param {Number} opts.scale
+ * @param {Number} opts.freq
+ * @param {String} opts.type
+ */
+
+function LFO(context, opts) {
+  AbstractNode.call(this, context);
+  this.osc = context.createOscillator();
+  this.scale = context.createGain();
+
+  opts = opts || {};
+  this.osc.frequency.value = opts.freq || 440;
+  this.osc.type = opts.type || 'sine';
+  this.scale.gain.value = opts.scale || 1.0;
+
+  this.osc.connect(this.scale);
+  this.scale.connect(this.output);
+
+  this.osc.start(0);
+}
+
+LFO.prototype = Object.create(AbstractNode.prototype);
+
+module.exports = LFO;
+
+},{"../AbstractNode":2}],9:[function(require,module,exports){
 var AbstractNode = require('../AbstractNode');
 
 /**
@@ -648,7 +770,7 @@ RecorderWrapper.prototype = Object.create(AbstractNode.prototype, {
 
 module.exports = RecorderWrapper;
 
-},{"../AbstractNode":2}],8:[function(require,module,exports){
+},{"../AbstractNode":2}],10:[function(require,module,exports){
 var Note = require('./lib/note');
 var Interval = require('./lib/interval');
 var Chord = require('./lib/chord');
@@ -727,7 +849,7 @@ var teoria = {
 require('./lib/sugar')(teoria);
 exports = module.exports = teoria;
 
-},{"./lib/chord":9,"./lib/interval":10,"./lib/note":12,"./lib/scale":13,"./lib/sugar":14}],9:[function(require,module,exports){
+},{"./lib/chord":11,"./lib/interval":12,"./lib/note":14,"./lib/scale":15,"./lib/sugar":16}],11:[function(require,module,exports){
 var daccord = require('daccord');
 var knowledge = require('./knowledge');
 var Note = require('./note');
@@ -954,7 +1076,7 @@ Chord.prototype = {
 
 module.exports = Chord;
 
-},{"./interval":10,"./knowledge":11,"./note":12,"daccord":16}],10:[function(require,module,exports){
+},{"./interval":12,"./knowledge":13,"./note":14,"daccord":18}],12:[function(require,module,exports){
 var knowledge = require('./knowledge');
 var vector = require('./vector');
 var toCoord = require('interval-coords');
@@ -1122,7 +1244,7 @@ Interval.invert = function(sInterval) {
 
 module.exports = Interval;
 
-},{"./knowledge":11,"./vector":15,"interval-coords":20}],11:[function(require,module,exports){
+},{"./knowledge":13,"./vector":17,"interval-coords":22}],13:[function(require,module,exports){
 // Note coordinates [octave, fifth] relative to C
 module.exports = {
   notes: {
@@ -1286,7 +1408,7 @@ module.exports = {
   }
 }
 
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var scientific = require('scientific-notation');
 var helmholtz = require('helmholtz');
 var knowledge = require('./knowledge');
@@ -1511,7 +1633,7 @@ Note.fromMIDI = function(note) {
 
 module.exports = Note;
 
-},{"./interval":10,"./knowledge":11,"./vector":15,"helmholtz":17,"scientific-notation":21}],13:[function(require,module,exports){
+},{"./interval":12,"./knowledge":13,"./vector":17,"helmholtz":19,"scientific-notation":23}],15:[function(require,module,exports){
 var knowledge = require('./knowledge');
 var Interval = require('./interval');
 
@@ -1621,7 +1743,7 @@ Scale.prototype = {
 
 module.exports = Scale;
 
-},{"./interval":10,"./knowledge":11}],14:[function(require,module,exports){
+},{"./interval":12,"./knowledge":13}],16:[function(require,module,exports){
 var knowledge = require('./knowledge');
 
 module.exports = function(teoria) {
@@ -1640,7 +1762,7 @@ module.exports = function(teoria) {
   }
 }
 
-},{"./knowledge":11}],15:[function(require,module,exports){
+},{"./knowledge":13}],17:[function(require,module,exports){
 module.exports = {
   add: function(note, interval) {
     return [note[0] + interval[0], note[1] + interval[1]];
@@ -1662,7 +1784,7 @@ module.exports = {
   }
 }
 
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var SYMBOLS = {
   'm': ['m3', 'P5'],
   'mi': ['m3', 'P5'],
@@ -1852,7 +1974,7 @@ module.exports = function(symbol) {
   return notes.slice(0, chordLength + 1).concat(additionals);
 }
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var coords = require('notecoord');
 var accval = require('accidental-value');
 
@@ -1895,7 +2017,7 @@ module.exports = function helmholtz(name) {
   return coord;
 };
 
-},{"accidental-value":18,"notecoord":19}],18:[function(require,module,exports){
+},{"accidental-value":20,"notecoord":21}],20:[function(require,module,exports){
 var accidentalValues = {
   'bb': -2,
   'b': -1,
@@ -1913,7 +2035,7 @@ module.exports.interval = function accidentalInterval(acc) {
   return [-4 * val, 7 * val];
 }
 
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // First coord is octaves, second is fifths. Distances are relative to c
 var notes = {
   c: [0, 0],
@@ -1934,7 +2056,7 @@ module.exports.notes = notes;
 module.exports.A4 = [3, 3]; // Relative to C0 (scientic notation, ~16.35Hz)
 module.exports.sharp = [-4, 7];
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var pattern = /^(AA|A|P|M|m|d|dd)(-?\d+)$/;
 
 // The interval it takes to raise a note a semitone
@@ -1984,7 +2106,7 @@ module.exports = function(simple) {
 // Copy to avoid overwriting internal base intervals
 module.exports.coords = baseIntervals.slice(0);
 
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var coords = require('notecoord');
 var accval = require('accidental-value');
 
@@ -2008,8 +2130,8 @@ module.exports = function scientific(name) {
   return coord;
 };
 
-},{"accidental-value":22,"notecoord":23}],22:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
-},{"dup":18}],23:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"dup":19}]},{},[1]);
+},{"accidental-value":24,"notecoord":25}],24:[function(require,module,exports){
+arguments[4][20][0].apply(exports,arguments)
+},{"dup":20}],25:[function(require,module,exports){
+arguments[4][21][0].apply(exports,arguments)
+},{"dup":21}]},{},[1]);
