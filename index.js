@@ -103,7 +103,8 @@ function stepTwo(buffer, callback) {
     frequency: 11000,
     gain: -3.0
   });
-  var eq4 = new Filter.Highpass(ctx, {frequency: 30});
+  var eq4 = new Filter.Highpass(ctx, {frequency: 20});
+  var lp = new Filter.Lowpass(ctx, {Q: 2.0});
 
   // Merge the duplicate buffers
   s1.connect(m1);
@@ -127,8 +128,9 @@ function stepTwo(buffer, callback) {
   eq1.connect(eq2);
   eq2.connect(eq3);
   eq3.connect(eq4);
-  eq4.connect(recorder.input);
-  eq4.connect(ctx.destination);
+  eq4.connect(lp);
+  lp.connect(recorder.input);
+  lp.connect(ctx.destination);
 
   // Adjustments...
   m1.gain.value = 0.5;
@@ -138,6 +140,7 @@ function stepTwo(buffer, callback) {
 
   scheduleFilterAutomation(bp._filter.frequency, 8, 3);
   scheduleFilterAutomation(notch._filter.frequency, 16, 2);
+  scheduleFilterAutomation(lp._filter.frequency, 8, 2);
 
   recorder.start();
   play(s1, s2, function(e) {
