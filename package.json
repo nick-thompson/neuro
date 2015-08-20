@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify index.js -o build/neuro.js",
-    "watch": "watchify index.js -o build/neuro.js"
+    "build": "browserify index.js -o neuro.js",
+    "watch": "watchify index.js -o neuro.js"
   },
   "repository": {
     "type": "git",
