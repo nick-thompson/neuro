@@ -90,6 +90,21 @@ function stepTwo(buffer, callback) {
   var cr2 = new Chorus(ctx);
   var m1 = ctx.createGain();
   var m2 = ctx.createGain();
+  var comp = ctx.createDynamicsCompressor();
+  var eq1 = new Filter.Peaking(ctx, {
+    frequency: 128,
+    gain: 2.0
+  });
+  var eq2 = new Filter.Peaking(ctx, {
+    frequency: 4500,
+    Q: 2.0,
+    gain: 3.0
+  });
+  var eq3 = new Filter.Peaking(ctx, {
+    frequency: 11000,
+    gain: -3.0
+  });
+  var eq4 = new Filter.Highpass(ctx, {frequency: 30});
 
   // Merge the duplicate buffers
   s1.connect(m1);
@@ -108,12 +123,19 @@ function stepTwo(buffer, callback) {
   cr2.connect(m2);
 
   // Connect the merged result
-  m2.connect(recorder.input);
-  m2.connect(ctx.destination);
+  m2.connect(comp);
+  comp.connect(eq1.input);
+  eq1.connect(eq2);
+  eq2.connect(eq3);
+  eq3.connect(eq4);
+  eq4.connect(recorder.input);
+  eq4.connect(ctx.destination);
 
   // Adjustments...
   m1.gain.value = 0.5;
   m2.gain.value = 0.5;
+  comp.ratio.value = 4.0;
+  comp.knee.value = 25;
 
   scheduleFilterAutomation(bp._filter.frequency, 8, 3);
   scheduleFilterAutomation(notch._filter.frequency, 16, 2);
