@@ -61,8 +61,8 @@ function stepOne(callback) {
   ];
 
   bass.connect(ws);
+  bass.connect(ctx.destination);
   ws.connect(recorder);
-  ws.connect(ctx.destination);
 
   recorder.start();
   bass.play(BPM, 1, notes, function(e) {
@@ -140,7 +140,7 @@ function stepTwo(buffer, callback) {
 
   scheduleFilterAutomation(bp._filter.frequency, 8, 3);
   scheduleFilterAutomation(notch._filter.frequency, 16, 2);
-  scheduleFilterAutomation(lp._filter.frequency, 8, 2);
+  scheduleFilterAutomation(lp._filter.frequency, 12, 2);
 
   recorder.start();
   play(s1, s2, function(e) {
@@ -148,16 +148,26 @@ function stepTwo(buffer, callback) {
   });
 }
 
+// In step three we can't get away with too much modulation because of how
+// much filter movement we introduced in step two. Too much going on here really
+// complicates the sound, past the point of a pleasing result, in my opinion.
 function stepThree(buffer, callback) {
   var s1 = new Sampler(ctx, buffer);
-  var s2 = new Sampler(ctx, buffer, {detune: 5});
+  var s2 = new Sampler(ctx, buffer, {detune: 3});
   var gain = ctx.createGain();
+  var ws = new WaveShaper(ctx, {drive: 2.0});
+  var ls = new Filter.Lowshelf(ctx, {
+    frequency: 16000,
+    gain: -1.0
+  });
 
   gain.gain.value = 0.5;
 
   s1.connect(gain);
   s2.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(ws.input);
+  ws.connect(ls);
+  ls.connect(ctx.destination);
 
   play(s1, s2, function(e) {
     callback();
@@ -168,9 +178,9 @@ function stepThree(buffer, callback) {
 function waterfall() {
   stepOne(function(b1) {
     stepTwo(b1, function(b2) {
-      // stepThree(b2, function() {
-      //   console.log('Done');
-      // });
+      stepThree(b2, function() {
+        console.log('Done');
+      });
     });
   });
 }
