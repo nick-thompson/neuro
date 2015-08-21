@@ -784,7 +784,7 @@ function RecorderWrapper(ctx) {
   AbstractNode.call(this, ctx);
   this.channels = 1;
   this.recorder = new Recorder(this.input, {
-    workerPath: '/vendor/recorderWorker.js',
+    workerPath: 'vendor/recorderWorker.js',
     numChannels: this.channels
   });
 }
