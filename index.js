@@ -187,23 +187,32 @@ function stepThree(buffer, callback) {
   });
 }
 
-// Run each step in series.
-function waterfall() {
-  stepOne(function(b1) {
-    stepTwo(b1, function(b2) {
-      stepThree(b2, function() {
-        console.log('Done');
+// User interface stuff.
+document.addEventListener('DOMContentLoaded', function(e) {
+  var playButton = document.getElementById('play');
+  var downloadButton = document.getElementById('download');
+
+  function enable() {
+    playButton.removeAttribute('disabled');
+    downloadButton.removeAttribute('disabled');
+  }
+
+  function disable() {
+    playButton.setAttribute('disabled', 'true');
+    downloadButton.setAttribute('disabled', 'true');
+  }
+
+  function waterfall(e) {
+    disable();
+    stepOne(function(b1) {
+      stepTwo(b1, function(b2) {
+        stepThree(b2, function() {
+          enable();
+        });
       });
     });
-  });
-}
-
-// Enable additional playback via spacebar press
-document.addEventListener('keyup', function(e) {
-  if (e.keyCode === 32) {
-    return waterfall();
   }
+
+  playButton.addEventListener('click', waterfall);
 });
 
-// Kick it off.
-waterfall();
