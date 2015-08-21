@@ -131,7 +131,6 @@ function stepTwo(buffer, callback) {
   eq3.connect(eq4);
   eq4.connect(lp);
   lp.connect(recorder.input);
-  lp.connect(ctx.destination);
 
   // Adjustments...
   m1.gain.value = 0.5;
@@ -169,6 +168,7 @@ function stepTwo(buffer, callback) {
 function stepThree(buffer, callback) {
   var s1 = new Sampler(ctx, buffer);
   var s2 = new Sampler(ctx, buffer, {detune: 3});
+  var recorder = new RecorderWrapper(ctx);
   var gain = ctx.createGain();
   var ws = new WaveShaper(ctx, {drive: 2.0});
   var ls = new Filter.Lowshelf(ctx, {
@@ -182,10 +182,12 @@ function stepThree(buffer, callback) {
   s2.connect(gain);
   gain.connect(ws.input);
   ws.connect(ls);
+  ls.connect(recorder);
   ls.connect(ctx.destination);
 
+  recorder.start();
   play(s1, s2, function(e) {
-    callback();
+    recorder.getDownloadFn(callback);
   });
 }
 
@@ -193,6 +195,8 @@ function stepThree(buffer, callback) {
 document.addEventListener('DOMContentLoaded', function(e) {
   var playButton = document.getElementById('play');
   var downloadButton = document.getElementById('download');
+  var _downloadFn = null;
+  var _downloadNumber = 0;
 
   function enable() {
     playButton.removeAttribute('disabled');
@@ -204,6 +208,13 @@ document.addEventListener('DOMContentLoaded', function(e) {
     downloadButton.setAttribute('disabled', 'true');
   }
 
+  function download(e) {
+    if (_downloadFn) {
+      var name = 'WebAudioNeuroBass' + _downloadNumber++ + '.wav';
+      _downloadFn(name);
+    }
+  }
+
   function waterfall(e) {
     disable();
     NProgress.start();
@@ -211,15 +222,17 @@ document.addEventListener('DOMContentLoaded', function(e) {
       NProgress.inc();
       stepTwo(b1, function(b2) {
         NProgress.inc();
-        stepThree(b2, function() {
+        stepThree(b2, function(downloadFn) {
           NProgress.done();
           enable();
+          _downloadFn = downloadFn;
         });
       });
     });
   }
 
   playButton.addEventListener('click', waterfall);
+  downloadButton.addEventListener('click', download);
 });
 
 
@@ -825,6 +838,17 @@ RecorderWrapper.prototype = Object.create(AbstractNode.prototype, {
         buffer.getChannelData(0).set(arr);
         return callback(buffer);
       }.bind(this));
+    }
+  },
+
+  getDownloadFn: {
+    value: function(callback) {
+      this.recorder.stop();
+      return this.recorder.exportWAV(function(blob) {
+        return callback(function(filename) {
+          Recorder.forceDownload(blob, filename);
+        });
+      });
     }
   }
 
