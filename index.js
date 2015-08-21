@@ -1,6 +1,7 @@
 var Bass = require('./lib/generators/Bass');
 var Chorus = require('./lib/effects/Chorus');
 var Filter = require('./lib/effects/Filter');
+var NProgress = require('nprogress');
 var RecorderWrapper = require('./lib/util/RecorderWrapper');
 var Sampler = require('./lib/generators/Sampler');
 var WaveShaper = require('./lib/effects/WaveShaper');
@@ -204,9 +205,13 @@ document.addEventListener('DOMContentLoaded', function(e) {
 
   function waterfall(e) {
     disable();
+    NProgress.start();
     stepOne(function(b1) {
+      NProgress.inc();
       stepTwo(b1, function(b2) {
+        NProgress.inc();
         stepThree(b2, function() {
+          NProgress.done();
           enable();
         });
       });
