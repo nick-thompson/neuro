@@ -130,6 +130,7 @@ function stepTwo(buffer, callback) {
   eq2.connect(eq3);
   eq3.connect(eq4);
   eq4.connect(lp);
+  // TODO: A bandpass filter in series here would be cool
   lp.connect(recorder.input);
 
   // Adjustments...
@@ -170,7 +171,7 @@ function stepThree(buffer, callback) {
   var s2 = new Sampler(ctx, buffer, {detune: 3});
   var recorder = new RecorderWrapper(ctx);
   var gain = ctx.createGain();
-  var ws = new WaveShaper(ctx, {drive: 2.0});
+  var ws = new WaveShaper(ctx, {drive: 1.2});
   var ls = new Filter.Lowshelf(ctx, {
     frequency: 16000,
     gain: -1.0
@@ -663,8 +664,12 @@ Bass.prototype = Object.create(AbstractNode.prototype, {
       var beats = 4 * bars;
       var duration = (60 / bpm) * beats;
       var interval = duration / notes.length;
+      var timeout = window.setTimeout(callback, 1450);
 
-      this.sawOne.onended = callback;
+      this.sawOne.onended = function(e) {
+        window.clearTimeout(timeout);
+        return callback(e);
+      };
 
       // I'm assuming that the first note here is not a rest.
       var fq = teoria.note(notes[0]).fq();
@@ -737,7 +742,13 @@ Sampler.prototype = Object.create(AbstractNode.prototype, {
 
   play: {
     value: function(callback) {
-      this.source.onended = callback;
+      var timeout = window.setTimeout(callback, 1450);
+
+      this.source.onended = function(e) {
+        window.clearTimeout(timeout);
+        return callback(e);
+      };
+
       this.start(0);
       this.stop(this.ctx.currentTime + this.buffer.duration);
     }

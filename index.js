@@ -129,6 +129,7 @@ function stepTwo(buffer, callback) {
   eq2.connect(eq3);
   eq3.connect(eq4);
   eq4.connect(lp);
+  // TODO: A bandpass filter in series here would be cool
   lp.connect(recorder.input);
 
   // Adjustments...
@@ -169,7 +170,7 @@ function stepThree(buffer, callback) {
   var s2 = new Sampler(ctx, buffer, {detune: 3});
   var recorder = new RecorderWrapper(ctx);
   var gain = ctx.createGain();
-  var ws = new WaveShaper(ctx, {drive: 2.0});
+  var ws = new WaveShaper(ctx, {drive: 1.2});
   var ls = new Filter.Lowshelf(ctx, {
     frequency: 16000,
     gain: -1.0
