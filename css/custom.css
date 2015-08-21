@@ -25,3 +25,8 @@ p.description {
   padding: 12rem 0;
   width: 100%;
 }
+
+.button[disabled] {
+  border-color: #ddd;
+  color: #ddd;
+}
