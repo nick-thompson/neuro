@@ -153,7 +153,7 @@ function stepTwo(buffer, callback) {
   scheduleFilterAutomation(
     lp._filter.frequency,
     12,
-    makeRandomGenerator(160, 18000, 2)
+    makeRandomGenerator(160, 18000, 1)
   );
 
   recorder.start();
