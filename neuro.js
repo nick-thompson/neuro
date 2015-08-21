@@ -32,11 +32,10 @@ function makeRandomGenerator(min, max, weight) {
   }
 }
 
-function scheduleFilterAutomation(param, steps, randWeight) {
+function scheduleFilterAutomation(param, steps, rand) {
   var beats = 4;
   var duration = (60 / BPM) * beats;
   var interval = duration / steps;
-  var rand = makeRandomGenerator(40, 18000, randWeight);
 
   param.setValueAtTime(rand(), ctx.currentTime);
 
@@ -139,9 +138,23 @@ function stepTwo(buffer, callback) {
   comp.ratio.value = 4.0;
   comp.knee.value = 25;
 
-  scheduleFilterAutomation(bp._filter.frequency, 8, 3);
-  scheduleFilterAutomation(notch._filter.frequency, 16, 2);
-  scheduleFilterAutomation(lp._filter.frequency, 12, 2);
+  scheduleFilterAutomation(
+    bp._filter.frequency,
+    8,
+    makeRandomGenerator(40, 18000, 3)
+  );
+
+  scheduleFilterAutomation(
+    notch._filter.frequency,
+    16,
+    makeRandomGenerator(40, 18000, 2)
+  );
+
+  scheduleFilterAutomation(
+    lp._filter.frequency,
+    12,
+    makeRandomGenerator(160, 18000, 2)
+  );
 
   recorder.start();
   play(s1, s2, function(e) {
