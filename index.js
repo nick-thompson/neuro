@@ -135,10 +135,9 @@ function stepTwo(buffer, callback) {
   // Adjustments...
   m1.gain.value = 0.5;
   m2.gain.value = 0.5;
-  comp.ratio.value = 4.0;
+  comp.ratio.value = 3.0;
   comp.knee.value = 25;
-  // TODO: This is disengaged...
-  comp.threshold.value = 0.0;
+  comp.threshold.value = -16.0;
 
   scheduleFilterAutomation(
     bp._filter.frequency,
