@@ -53,7 +53,7 @@ function scheduleFilterAutomation(param, steps, rand) {
 function stepOne(callback) {
   var bass = new Bass(ctx);
   var recorder = new RecorderWrapper(ctx);
-  var ws = new WaveShaper(ctx, {drive: 2.8});
+  var ws = new WaveShaper(ctx, {amount: 0.6});
   var notes = [
     'g#1', 'g#1', '__', 'g#3',
     'g#1', 'g#1', '__', 'b2',
@@ -62,8 +62,8 @@ function stepOne(callback) {
   ];
 
   bass.connect(ws);
-  bass.connect(ctx.destination);
   ws.connect(recorder);
+  ws.connect(ctx.destination);
 
   recorder.start();
   bass.play(BPM, 1, notes, function(e) {
@@ -74,20 +74,17 @@ function stepOne(callback) {
 // In step two, we duplicate the incoming buffer and play one duplicate next
 // to the other but detuned +3 cents. We then send both sources through two
 // parallel effects racks. In the first, we have two heavily-modulated filters,
-// followed by a chorus and another distortion module. In the second, we have
-// a distortion module followed by a chorus. The result is then merged and
-// sent through a soft compression, slight EQ, and additional filter modulation
-// before being recorded out to buffer.
+// followed by a chorus. In the second, we send just the dry signal through.
+// The result is then merged and sent through a soft compression, slight EQ,
+// and additional filter modulation before being recorded out to buffer.
 function stepTwo(buffer, callback) {
   var recorder = new RecorderWrapper(ctx);
   var s1 = new Sampler(ctx, buffer);
   var s2 = new Sampler(ctx, buffer, {detune: 3});
-  var bp = new Filter.Bandpass(ctx, {Q: 0.01});
-  var notch = new Filter.Notch(ctx, {Q: 0.5});
-  var ws1 = new WaveShaper(ctx, {drive: 1.8});
-  var ws2 = new WaveShaper(ctx, {drive: 1.2});
-  var cr1 = new Chorus(ctx);
-  var cr2 = new Chorus(ctx);
+  var bp = new Filter.Bandpass(ctx, {Q: 0.8});
+  var notch = new Filter.Notch(ctx, {Q: 2.0});
+  var ws = new WaveShaper(ctx, {amount: 0.6, drive: 0.6});
+  var cr = new Chorus(ctx);
   var m1 = ctx.createGain();
   var m2 = ctx.createGain();
   var comp = ctx.createDynamicsCompressor();
@@ -114,17 +111,15 @@ function stepTwo(buffer, callback) {
   // Connect the left side of the parallel chain
   m1.connect(bp.input);
   bp.connect(notch);
-  notch.connect(cr1);
-  cr1.connect(ws1);
-  ws1.connect(m2);
+  notch.connect(cr);
+  cr.connect(m2);
 
   // Connect the right side of the parallel chain
-  m1.connect(ws2.input);
-  ws2.connect(cr2);
-  cr2.connect(m2);
+  m1.connect(m2);
 
   // Connect the merged result
-  m2.connect(comp);
+  m2.connect(ws.input);
+  ws.connect(comp);
   comp.connect(eq1.input);
   eq1.connect(eq2);
   eq2.connect(eq3);
@@ -138,23 +133,25 @@ function stepTwo(buffer, callback) {
   m2.gain.value = 0.5;
   comp.ratio.value = 4.0;
   comp.knee.value = 25;
+  // TODO: This is disengaged...
+  comp.threshold.value = 0.0;
 
   scheduleFilterAutomation(
     bp._filter.frequency,
     8,
-    makeRandomGenerator(40, 18000, 3)
+    makeRandomGenerator(80, 18000, 3)
   );
 
   scheduleFilterAutomation(
     notch._filter.frequency,
-    16,
-    makeRandomGenerator(40, 18000, 2)
+    4,
+    makeRandomGenerator(160, 18000, 2)
   );
 
   scheduleFilterAutomation(
     lp._filter.frequency,
     12,
-    makeRandomGenerator(160, 18000, 1)
+    makeRandomGenerator(120, 18000, 2)
   );
 
   recorder.start();
@@ -171,7 +168,7 @@ function stepThree(buffer, callback) {
   var s2 = new Sampler(ctx, buffer, {detune: 3});
   var recorder = new RecorderWrapper(ctx);
   var gain = ctx.createGain();
-  var ws = new WaveShaper(ctx, {drive: 1.2});
+  var ws = new WaveShaper(ctx, {amount: 0.4});
   var ls = new Filter.Lowshelf(ctx, {
     frequency: 16000,
     gain: -1.0
@@ -274,6 +271,11 @@ AbstractNode.prototype.disconnect = function disconnect(destination) {
     return this.output.disconnect(destination);
   }
   return this.output.disconnect();
+};
+
+AbstractNode.prototype.disable = function disable() {
+  this.input.disconnect();
+  this.input.connect(this.output);
 };
 
 module.exports = AbstractNode;
@@ -564,9 +566,10 @@ function WaveShaper(ctx, opts) {
   AbstractNode.call(this, ctx);
   this._ws = ctx.createWaveShaper();
 
-  var drive = !!opts && !!opts.drive ? opts.drive : 0.5;
-  this.input.gain.value = drive;
-  this.output.gain.value = Math.pow(1.0 / drive, 0.6);
+  this.drive = opts && opts.drive || 1.0;
+  this.amount = opts && opts.amount || 0.5;
+  this.input.gain.value = this.drive;
+  this.output.gain.value = Math.pow(1.0 / this.drive, 0.6);
   this._setCurve();
 
   this.input.connect(this._ws);
@@ -579,6 +582,8 @@ WaveShaper.prototype = Object.create(AbstractNode.prototype, {
     value: function() {
       var n = 65536;
       var curve = new Float32Array(n);
+      var amt = Math.min(this.amount, 0.9999);
+      var k = 2 * amt / (1 - amt);
 
       for (var i = 0; i < n; i++) {
         var x = (i - (n / 2)) / (n / 2);
@@ -586,8 +591,10 @@ WaveShaper.prototype = Object.create(AbstractNode.prototype, {
         // Identity
         // curve[i] = x;
 
+        curve[i] = (1 + k) * x / (1 + k * Math.abs(x))
+
         // Hard clipping
-        curve[i] = 0.5 * (Math.abs(x + 0.63) - Math.abs(x - 0.63));
+        // curve[i] = 0.5 * (Math.abs(x + 0.63) - Math.abs(x - 0.63));
 
         // Soft clipping
         // curve[i] = Math.tanh(x);
