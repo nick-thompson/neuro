@@ -51,6 +51,25 @@ function scheduleFilterAutomation(param, steps, rand) {
   }
 }
 
+function scheduleParallelFilterAutomation(p1, p2, steps, rand) {
+  var beats = 4;
+  var duration = (60 / BPM) * beats;
+  var interval = duration / steps;
+  var init = rand();
+
+  p1.setValueAtTime(init, ctx.currentTime);
+  p2.setValueAtTime(init / 2, ctx.currentTime);
+
+  for (var i = 0; i < steps; i++) {
+    var delta = (i + 1) * interval;
+    var t = ctx.currentTime + delta;
+    var r = rand();
+
+    p1.exponentialRampToValueAtTime(r, t);
+    p2.exponentialRampToValueAtTime(r / 2, t);
+  }
+}
+
 // Step one is just the raw bass synth sent through a waveshaper and recorded
 // out to a buffer.
 function stepOne(callback) {
@@ -90,6 +109,7 @@ function stepTwo(buffer, callback) {
   var cr = new Chorus(ctx);
   var m1 = ctx.createGain();
   var m2 = ctx.createGain();
+  var m3 = ctx.createGain();
   var comp = ctx.createDynamicsCompressor();
   var eq1 = new Filter.Peaking(ctx, {
     frequency: 128,
@@ -106,6 +126,7 @@ function stepTwo(buffer, callback) {
   });
   var eq4 = new Filter.Highpass(ctx, {frequency: 20});
   var lp = new Filter.Lowpass(ctx, {Q: 2.0});
+  var bp2 = new Filter.Bandpass(ctx, {Q: 0.8});
 
   // Merge the duplicate buffers
   s1.connect(m1);
@@ -128,13 +149,16 @@ function stepTwo(buffer, callback) {
   eq2.connect(eq3);
   eq3.connect(eq4);
   eq4.connect(lp);
-  // TODO: A bandpass filter in series here would be cool
-  lp.connect(recorder.input);
-  lp.connect(ctx.destination);
+  eq4.connect(bp2);
+  lp.connect(m3);
+  bp2.connect(m3);
+  m3.connect(recorder.input);
+  m3.connect(ctx.destination);
 
   // Adjustments...
   m1.gain.value = 0.5;
   m2.gain.value = 0.5;
+  m3.gain.value = 0.75;
   comp.ratio.value = 3.0;
   comp.knee.value = 25;
   comp.threshold.value = -16.0;
@@ -151,8 +175,9 @@ function stepTwo(buffer, callback) {
     makeRandomGenerator(160, 18000, 2)
   );
 
-  scheduleFilterAutomation(
+  scheduleParallelFilterAutomation(
     lp._filter.frequency,
+    bp2._filter.frequency,
     uniformRandInt(2, 16),
     makeRandomGenerator(120, 18000, 2)
   );
