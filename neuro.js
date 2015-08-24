@@ -33,6 +33,10 @@ function makeRandomGenerator(min, max, weight) {
   }
 }
 
+function uniformRandInt(min, max) {
+  return Math.random() * (max - min + 1) + min;
+}
+
 function scheduleFilterAutomation(param, steps, rand) {
   var beats = 4;
   var duration = (60 / BPM) * beats;
@@ -127,6 +131,7 @@ function stepTwo(buffer, callback) {
   eq4.connect(lp);
   // TODO: A bandpass filter in series here would be cool
   lp.connect(recorder.input);
+  lp.connect(ctx.destination);
 
   // Adjustments...
   m1.gain.value = 0.5;
@@ -150,7 +155,7 @@ function stepTwo(buffer, callback) {
 
   scheduleFilterAutomation(
     lp._filter.frequency,
-    12,
+    uniformRandInt(2, 16),
     makeRandomGenerator(120, 18000, 2)
   );
 
@@ -165,10 +170,10 @@ function stepTwo(buffer, callback) {
 // complicates the sound, past the point of a pleasing result, in my opinion.
 function stepThree(buffer, callback) {
   var s1 = new Sampler(ctx, buffer);
-  var s2 = new Sampler(ctx, buffer, {detune: 3});
+  var s2 = new Sampler(ctx, buffer, {detune: 5});
   var recorder = new RecorderWrapper(ctx);
   var gain = ctx.createGain();
-  var ws = new WaveShaper(ctx, {amount: 0.4});
+  var ws = new WaveShaper(ctx, {amount: 0.2});
   var ls = new Filter.Lowshelf(ctx, {
     frequency: 16000,
     gain: -1.0
