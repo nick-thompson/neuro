@@ -6,6 +6,34 @@ import numpy as np
 x = np.linspace(-np.pi, np.pi, 201)
 y = np.sin(x)
 
+plt.figure()
+plt.subplot(121)
+
+# Color in the axes
+plt.axvline(linewidth=1, color='#bbbbbb')
+plt.axhline(linewidth=1, color='#bbbbbb')
+
+x_one_one = np.linspace(-1, 1, 201)
+
+# Soft Saturation
+plt.plot(x_one_one, np.arctan(x_one_one), color='m')
+
+# Soft saturation approximation
+plt.plot(x_one_one, np.arctan(x_one_one) - (np.arctan(x_one_one) ** 3) / 3, color='c')
+
+# Hard clipping
+plt.plot(x_one_one, 0.5 * (abs(x_one_one + 0.85) - abs(x_one_one - 0.85)), color='b')
+
+# Chebyshev
+plt.plot(x_one_one, 0.5 * x_one_one + 0.5 * (2 * x_one_one ** 2 - 1), color='y')
+
+# Identity
+plt.plot(x_one_one, x_one_one, color='k')
+
+plt.axis('tight')
+plt.subplot(122)
+
+# Color in the axes
 plt.axvline(linewidth=1, color='#bbbbbb')
 plt.axhline(linewidth=1, color='#bbbbbb')
 
