@@ -24,9 +24,6 @@ plt.plot(x_one_one, np.arctan(x_one_one) - (np.arctan(x_one_one) ** 3) / 3, colo
 # Hard clipping
 plt.plot(x_one_one, 0.5 * (abs(x_one_one + 0.85) - abs(x_one_one - 0.85)), color='b')
 
-# Chebyshev
-plt.plot(x_one_one, 0.5 * x_one_one + 0.5 * (2 * x_one_one ** 2 - 1), color='y')
-
 # Identity
 plt.plot(x_one_one, x_one_one, color='k')
 
@@ -48,9 +45,6 @@ plt.plot(x, 0.5 * (abs(y + 0.85) - abs(y - 0.85)), color='b')
 
 # Original
 plt.plot(x, y, color='k')
-
-# Chebyshev
-plt.plot(x, 0.5 * y + 0.5 * (2 * y ** 2 - 1), color='y')
 
 plt.axis('tight')
 plt.show()
