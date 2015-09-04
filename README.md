@@ -2,6 +2,25 @@
 
 > A Web Audio sound design experiment and demonstration.
 
+Read the blog bost [here](http://nickwritesablog.com/sound-design-in-web-audio-neurofunk-bass-part-1/).
+
+## About
+
+This repository holds a Web Audio demonstration which examines a particular sound design process for creating
+electronic bass sounds in the style of popular Drum n' Bass groups such as Noisia, Evol Intent, Trifonic, and KOAN
+Sound. The blog post which accompanies it, linked above, tries to explain the intricacies of three major parts of
+the process: phasing, waveshaping, and resampling, with the goal of answering the "why" kinds of questions behind
+each step of this well-known process. 
+
+"Why is resampling important?"
+
+"Why does this distortion plugin sound better than my other distortion plugin?"
+
+The details which answer these kinds of questions are often hidden behind the implementation of popular DAW 
+software and VST plugins. But those same details become important for shaping a sound when working with a 
+lower-level interface such as the Web Audio API, and, frankly, are just really interesting. This project attempts
+to illuminate such details, at least from the perspective of a musician with little formal DSP training.
+
 ## License
 
 Copyright (c) 2015 Nick Thompson
